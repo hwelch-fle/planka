@@ -3,50 +3,32 @@
 
 import sys
 import json
-import logging
-import apprise
+from apprise import Apprise, LogCapture, logging
+
+type Services = list[dict[str, str]]
+
+class Notifier:
+    def __init__(self, services: Services, title: str, body: str, format: str) -> None:
+        self.app = Apprise(servers=[s["url"] for s in services])
+        self.body = body
+        self.fmt = format
+        self.title = title
+
+    def notify(self) -> None:
+        """Emit a notification"""
+        with LogCapture(level=logging.WARNING) as output:
+            self.app.notify(title=self.title, body=self.body, body_format=self.fmt)
+            if err := output.getvalue(): # type: ignore
+                print(err, file=sys.stderr) # type: ignore
 
 
-last_apprise_message = None
-class CaptureWarningHandler(logging.Handler):
-    def emit(self, record):
-        global last_apprise_message
-        last_apprise_message = record.getMessage()
+def notify(*args: str) -> None:
+    srvs: Services = json.loads(args[1])
+    title: str = args[2]
+    bodies: dict[str, str] = json.loads(args[3])
+    # Get unique formats and bundle service notifiers by format and notify
+    for fmt in set(s["format"] for s in srvs)
+        Notifier([s for s in srvs if s["format"] == fmt], title, bodies[fmt], fmt,).notify()
 
-
-capture_warning_handler = CaptureWarningHandler()
-capture_warning_handler.setLevel(logging.WARNING)
-
-apprise_logger = logging.getLogger('apprise')
-apprise_logger.setLevel(logging.WARNING)
-apprise_logger.propagate = False
-apprise_logger.addHandler(capture_warning_handler)
-
-
-def send_notification(url, title, body, body_format):
-    app = apprise.Apprise()
-    app.add(url)
-    return app.notify(title=title, body=body, body_format=body_format)
-
-
-if __name__ == '__main__':
-    services = json.loads(sys.argv[1])
-    title = sys.argv[2]
-    body_by_format = json.loads(sys.argv[3])
-
-    for service in services:
-        url = service['url']
-        body_format = service['format']
-        body = body_by_format[body_format]
-
-        last_apprise_message = None
-        if not send_notification(url, title, body, body_format):
-            if last_apprise_message:
-                if last_apprise_message == 'There are no service(s) to notify':
-                    sys.stderr.write('Unknown service URL')
-                else:
-                    sys.stderr.write(last_apprise_message)
-            else:
-                sys.stderr.write('Unknown error')
-
-            sys.exit(1)
+if __name__ == "__main__":
+    notify(*sys.argv)
