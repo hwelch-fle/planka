@@ -16,7 +16,7 @@ class Notifier:
         self.title = title
 
     def notify(self) -> None:
-        """Emit a notification"""
+        """Emit a notification and write warnings to stderr"""
         with LogCapture(level=logging.WARNING) as output:
             self.app.notify(title=self.title, body=self.body, body_format=self.fmt)
             if err := output.getvalue():  # type: ignore
@@ -30,10 +30,10 @@ def notify(*args: str) -> None:
     # Get unique formats and bundle service notifiers by format and notify
     for fmt in set(s["format"] for s in srvs):
         Notifier(
-            [s for s in srvs if s["format"] == fmt],
-            title,
-            bodies[fmt],
-            fmt,
+            services=[s for s in srvs if s["format"] == fmt],
+            title=title,
+            body=bodies[fmt],
+            format=fmt,
         ).notify()
 
 
