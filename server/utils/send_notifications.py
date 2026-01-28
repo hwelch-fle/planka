@@ -21,6 +21,7 @@ class Notifier:
             self.app.notify(title=self.title, body=self.body, body_format=self.fmt)
             if warn := warnings.getvalue():  # type: ignore
                 print(warn, file=sys.stderr)  # type: ignore
+                sys.exit(1)
 
 
 def notify_all(*args: str) -> None:
