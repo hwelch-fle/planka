@@ -8,20 +8,14 @@ from apprise import Apprise, LogCapture, logging
 type Services = list[dict[str, str]]
 
 
-class Notifier:
-    def __init__(self, services: Services, title: str, body: str, format: str) -> None:
-        self.app = Apprise(servers=[s["url"] for s in services])
-        self.body = body
-        self.fmt = format
-        self.title = title
-
-    def notify(self) -> None:
-        """Emit a notification and write warnings to stderr"""
-        with LogCapture(level=logging.WARNING) as warnings:
-            self.app.notify(title=self.title, body=self.body, body_format=self.fmt)
-            if warn := warnings.getvalue():  # type: ignore
-                print(warn, file=sys.stderr)  # type: ignore
-                sys.exit(1)
+def notify(services: Services, title: str, body: str, format: str) -> None:
+    """Emit a notification and write warnings to stderr"""
+    app = Apprise(servers=[s["url"] for s in services])
+    with LogCapture(level=logging.WARNING) as warnings:
+        app.notify(title=title, body=body, body_format=format)
+        if warn := warnings.getvalue():  # type: ignore
+            print(warn, file=sys.stderr)  # type: ignore
+            sys.exit(1)
 
 
 def notify_all(*args: str) -> None:
@@ -30,12 +24,12 @@ def notify_all(*args: str) -> None:
     bodies: dict[str, str] = json.loads(args[3])
     # Get unique formats and bundle service notifiers by format and notify
     for fmt in set(s["format"] for s in srvs):
-        Notifier(
+        notify(
             services=[s for s in srvs if s["format"] == fmt],
             title=title,
             body=bodies[fmt],
             format=fmt,
-        ).notify()
+        )
 
 
 if __name__ == "__main__":
