@@ -48,10 +48,21 @@ const createOne = async (values) => {
   return User.create({ ...values }).fetch();
 };
 
-const getByIds = (ids) => defaultFind(ids);
+const getByIds = (ids, { withDeactivated = true } = {}) => {
+  const criteria = {
+    id: ids,
+  };
 
-const getAll = ({ roleOrRoles } = {}) =>
+  if (!withDeactivated) {
+    criteria.isDeactivated = false;
+  }
+
+  return defaultFind(criteria);
+};
+
+const getAll = ({ roleOrRoles, isDeactivated } = {}) =>
   defaultFind({
+    isDeactivated,
     role: roleOrRoles,
   });
 
