@@ -17,13 +17,11 @@ class Notifier:
 
     def notify(self) -> None:
         """Emit a notification and write warnings to stderr"""
-        with LogCapture(level=logging.WARNING) as output:
+        with LogCapture(path=sys.stderr, level=logging.WARNING):
             self.app.notify(title=self.title, body=self.body, body_format=self.fmt)
-            if err := output.getvalue():  # type: ignore
-                print(err, file=sys.stderr)  # type: ignore
 
 
-def notify(*args: str) -> None:
+def notify_all(*args: str) -> None:
     srvs: Services = json.loads(args[1])
     title: str = args[2]
     bodies: dict[str, str] = json.loads(args[3])
@@ -38,4 +36,4 @@ def notify(*args: str) -> None:
 
 
 if __name__ == "__main__":
-    notify(*sys.argv)
+    notify_all(*sys.argv)
